@@ -1,0 +1,43 @@
+{
+  "id": "custom-lint",
+  "name": "Custom Project Lint Rules",
+  "description": "Project-specific linting rules for code quality",
+  "type": "validator",
+  "stages": ["pre-sync"],
+  "filePatterns": ["\\.js$", "\\.ts$", "\\.jsx$", "\\.tsx$"],
+  "enabled": true,
+  "path": "./customPlugins/lintPlugin.ts",
+  "options": {
+    "rules": [
+      {
+        "id": "voidSync-no-setTimeout",
+        "description": "Disallows setTimeout usage in favor of scheduled tasks",
+        "severity": "warning",
+        "pattern": "setTimeout\\(",
+        "message": "Use scheduled tasks instead of setTimeout for better testability",
+        "enabled": true
+      },
+      {
+        "id": "voidSync-require-comments",
+        "description": "Functions must have JSDoc comments",
+        "severity": "warning",
+        "pattern": "function\\s+[a-zA-Z0-9_]+\\s*\\([^\\)]*\\)\\s*\\{",
+        "flags": "g",
+        "message": "Functions should have JSDoc comments",
+        "enabled": true
+      },
+      {
+        "id": "voidSync-no-sync-fs",
+        "description": "Disallows synchronous file operations",
+        "severity": "error",
+        "pattern": "fs\\.(read|write|append|exists|mkdir|rmdir|unlink|copyFile|rename)Sync",
+        "message": "Use async fs operations instead of sync",
+        "enabled": true
+      },
+      {
+        "id": "no-console",
+        "enabled": false
+      }
+    ]
+  }
+}

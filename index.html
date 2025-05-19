@@ -1,13 +1,391 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
-    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoidSync Demo</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #2c3e50;
+    }
+    
+    h2 {
+      margin: 20px 0 10px;
+      color: #3498db;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    
+    textarea {
+      min-height: 150px;
+      resize: vertical;
+    }
+    
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+    
+    button:hover {
+      background-color: #2980b9;
+    }
+    
+    .panel {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+    }
+    
+    .history-item {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .history-item:last-child {
+      border-bottom: none;
+    }
+    
+    pre {
+      background-color: #f1f1f1;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 20px;
+    }
+    
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    
+    .tab.active {
+      border: 1px solid #ddd;
+      border-bottom-color: white;
+      border-radius: 4px 4px 0 0;
+      margin-bottom: -1px;
+      background-color: white;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>VoidSync Demo</h1>
+    
+    <div class="tabs">
+      <div class="tab active" data-tab="sync">Sync File</div>
+      <div class="tab" data-tab="history">History</div>
+      <div class="tab" data-tab="files">Files</div>
+    </div>
+    
+    <div class="tab-content active" id="sync-tab">
+      <h2>Sync a File</h2>
+      <div class="form-group">
+        <label for="filePath">File Path</label>
+        <input type="text" id="filePath" placeholder="e.g., folder/example.txt">
+      </div>
+      
+      <div class="form-group">
+        <label for="content">Content</label>
+        <textarea id="content" placeholder="Enter file content here"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label for="metadata">Metadata (JSON)</label>
+        <textarea id="metadata" placeholder='{"author": "your_name", "description": "file description"}'></textarea>
+      </div>
+      
+      <button id="syncButton">Sync File</button>
+      
+      <div class="panel" id="syncResult" style="display: none;">
+        <h3>Result</h3>
+        <pre id="syncResultContent"></pre>
+      </div>
+    </div>
+    
+    <div class="tab-content" id="history-tab">
+      <h2>Sync History</h2>
+      <button id="refreshHistoryButton">Refresh History</button>
+      <div class="panel" id="historyPanel">
+        <p>Loading history...</p>
+      </div>
+    </div>
+    
+    <div class="tab-content" id="files-tab">
+      <h2>View File</h2>
+      <div class="form-group">
+        <label for="viewFilePath">File Path</label>
+        <input type="text" id="viewFilePath" placeholder="e.g., folder/example.txt">
+      </div>
+      
+      <button id="viewFileButton">View File</button>
+      
+      <div class="panel" id="fileContent" style="display: none;">
+        <h3>File Content</h3>
+        <pre id="fileContentText"></pre>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // WebSocket Connection
+    let socket;
+    
+    function connectWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      
+      socket = new WebSocket(wsUrl);
+      
+      socket.onopen = () => {
+        console.log('Connected to WebSocket');
+      };
+      
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log('WebSocket message received:', data);
+        
+        if (data.type === 'INITIAL_HISTORY' || data.type === 'HISTORY_DATA') {
+          updateHistoryPanel(data.data.history);
+        } else if (data.type === 'HISTORY_UPDATED') {
+          // Refresh history when updated
+          getHistory();
+        }
+      };
+      
+      socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+      
+      socket.onclose = () => {
+        console.log('WebSocket connection closed');
+        // Try to reconnect after a delay
+        setTimeout(connectWebSocket, 3000);
+      };
+    }
+    
+    // Connect initially
+    connectWebSocket();
+    
+    // Tab functionality
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Add active class to clicked tab
+        tab.classList.add('active');
+        document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+        
+        // If history tab is clicked, refresh history
+        if (tab.dataset.tab === 'history') {
+          getHistory();
+        }
+      });
+    });
+    
+    // Sync file
+    document.getElementById('syncButton').addEventListener('click', async () => {
+      const filePath = document.getElementById('filePath').value.trim();
+      const content = document.getElementById('content').value;
+      let metadata = {};
+      
+      try {
+        const metadataText = document.getElementById('metadata').value.trim();
+        if (metadataText) {
+          metadata = JSON.parse(metadataText);
+        }
+      } catch (error) {
+        alert('Invalid JSON in metadata field');
+        return;
+      }
+      
+      if (!filePath) {
+        alert('File path is required');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            filePath,
+            content,
+            metadata
+          })
+        });
+        
+        const result = await response.json();
+        const resultElement = document.getElementById('syncResult');
+        const resultContentElement = document.getElementById('syncResultContent');
+        
+        resultContentElement.textContent = JSON.stringify(result, null, 2);
+        resultElement.style.display = 'block';
+      } catch (error) {
+        alert(`Error syncing file: ${error.message}`);
+      }
+    });
+    
+    // Get history
+    async function getHistory() {
+      try {
+        // First try WebSocket if available
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'GET_HISTORY' }));
+          return;
+        }
+        
+        // Fallback to HTTP
+        const response = await fetch('/history');
+        const result = await response.json();
+        
+        if (result.success) {
+          updateHistoryPanel(result.data.history);
+        } else {
+          document.getElementById('historyPanel').innerHTML = `<p>Error: ${result.error}</p>`;
+        }
+      } catch (error) {
+        document.getElementById('historyPanel').innerHTML = `<p>Error: ${error.message}</p>`;
+      }
+    }
+    
+    // Update history panel
+    function updateHistoryPanel(history) {
+      const historyPanel = document.getElementById('historyPanel');
+      
+      if (history.length === 0) {
+        historyPanel.innerHTML = '<p>No history entries yet</p>';
+        return;
+      }
+      
+      let html = '';
+      
+      // Sort by timestamp in descending order
+      history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      
+      history.forEach(entry => {
+        const date = new Date(entry.timestamp).toLocaleString();
+        
+        html += `
+          <div class="history-item">
+            <strong>${entry.action}:</strong> ${entry.filePath}<br>
+            <small>Timestamp: ${date}</small><br>
+            <small>Fingerprint: ${entry.fingerprint.substring(0, 8)}...</small>
+            <details>
+              <summary>Full Details</summary>
+              <pre>${JSON.stringify(entry, null, 2)}</pre>
+            </details>
+          </div>
+        `;
+      });
+      
+      historyPanel.innerHTML = html;
+    }
+    
+    // Refresh history button
+    document.getElementById('refreshHistoryButton').addEventListener('click', getHistory);
+    
+    // View file
+    document.getElementById('viewFileButton').addEventListener('click', async () => {
+      const filePath = document.getElementById('viewFilePath').value.trim();
+      
+      if (!filePath) {
+        alert('File path is required');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/files/${encodeURIComponent(filePath)}`);
+        const result = await response.json();
+        
+        const contentElement = document.getElementById('fileContent');
+        const contentTextElement = document.getElementById('fileContentText');
+        
+        if (result.success) {
+          contentTextElement.textContent = result.data.content;
+          contentElement.style.display = 'block';
+        } else {
+          alert(`Error: ${result.error}`);
+        }
+      } catch (error) {
+        alert(`Error retrieving file: ${error.message}`);
+      }
+    });
+    
+    // Initial load
+    getHistory();
+  </script>
+</body>
 </html>

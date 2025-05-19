@@ -1,0 +1,17 @@
+{
+  "GPT-4": { 
+    "role": "editor", 
+    "canEdit": ["*.js"], 
+    "maxChanges": 10 
+  },
+  "Claude": { 
+    "role": "reviewer", 
+    "canEdit": [], 
+    "canComment": true 
+  },
+  "Replit": { 
+    "role": "editor", 
+    "canEdit": ["*.py"], 
+    "maxChanges": 15 
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "id": "web-accessibility",
+  "name": "Web Accessibility Validator",
+  "description": "Checks HTML, JSX, and TSX files for WCAG compliance issues",
+  "type": "validator",
+  "stages": ["pre-sync", "pre-commit"],
+  "filePatterns": ["\\.html$", "\\.jsx$", "\\.tsx$"],
+  "enabled": true,
+  "path": "./customPlugins/accessibilityPlugin.ts",
+  "options": {
+    "checks": [
+      {
+        "id": "voidSync-aria-expanded",
+        "description": "Dropdown buttons must have aria-expanded attribute",
+        "pattern": "<button[^>]*class=\"[^\"]*dropdown[^\"]*\"[^>]*(?!aria-expanded)[^>]*>",
+        "message": "Dropdown buttons should have aria-expanded attribute",
+        "enabled": true
+      },
+      {
+        "id": "voidSync-form-required",
+        "description": "Required inputs must be marked with aria-required",
+        "pattern": "<input[^>]*required[^>]*(?!aria-required=\"true\")[^>]*>",
+        "message": "Required inputs should also have aria-required=\"true\"",
+        "enabled": true
+      },
+      {
+        "id": "voidSync-sr-only",
+        "description": "Ensure screen reader only text for icons",
+        "pattern": "<(button|a)[^>]*class=\"[^\"]*icon[^\"]*\"[^>]*>\\s*<[^>]*>[\\s\\r\\n]*<\\/(button|a)>",
+        "message": "Icon-only buttons/links should have screen reader text",
+        "enabled": true
+      },
+      {
+        "id": "a-target-rel",
+        "message": "Links with target=\"_blank\" should have rel=\"noopener noreferrer\" for security and accessibility"
+      }
+    ]
+  }
+}
