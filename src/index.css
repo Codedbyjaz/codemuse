@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-gray-50 text-gray-900;
+  }
+
+  .diff-line {
+    @apply font-mono whitespace-pre py-0.5 px-2 leading-relaxed text-sm;
+  }
+
+  .diff-added {
+    @apply bg-green-50 border-l-2 border-green-500;
+  }
+
+  .diff-removed {
+    @apply bg-red-50 border-l-2 border-red-500;
+  }
+
+  .diff-unchanged {
+    @apply border-l-2 border-transparent;
+  }
+
+  .diff-header {
+    @apply bg-gray-100 border-l-2 border-gray-500 text-gray-600;
+  }
+}

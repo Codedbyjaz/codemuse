@@ -1,0 +1,8 @@
+{"timestamp":"2025-04-15T19:14:45.604Z","level":"info","category":"websocket","message":"WebSocket server initialized on path: /ws","context":{"pid":1673}}
+{"timestamp":"2025-04-15T19:14:48.131Z","level":"info","category":"websocket","message":"Client connected: client_1744744488131_6wyndu5d","context":{"clientId":"client_1744744488131_6wyndu5d","ip":"172.31.128.14","pid":1673}}
+{"timestamp":"2025-04-15T19:14:48.897Z","level":"info","category":"websocket","message":"Client disconnected: client_1744744488131_6wyndu5d","context":{"pid":1673}}
+{"timestamp":"2025-04-15T20:39:12.953Z","level":"info","category":"websocket","message":"WebSocket server initialized on path: /ws","context":{"pid":190}}
+{"timestamp":"2025-04-17T01:51:44.482Z","level":"info","category":"websocket","message":"WebSocket server initialized on path: /ws","context":{"pid":247}}
+{"timestamp":"2025-04-17T01:58:23.582Z","level":"info","category":"websocket","message":"WebSocket server initialized on path: /ws","context":{"pid":585}}
+{"timestamp":"2025-04-17T01:58:27.016Z","level":"info","category":"websocket","message":"Client connected: client_1744855107015_5-rzDHif","context":{"clientId":"client_1744855107015_5-rzDHif","ip":"172.31.128.18","pid":585}}
+{"timestamp":"2025-04-17T01:58:28.003Z","level":"info","category":"websocket","message":"Client disconnected: client_1744855107015_5-rzDHif","context":{"pid":585}}

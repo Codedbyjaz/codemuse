@@ -1,0 +1,7 @@
+{
+  "lockedFiles": ["config/settings.json"],
+  "lockedPatterns": [
+    { "file": "main.py", "pattern": "def delete_user\\(" },
+    { "file": "routes.js", "pattern": "app\\.delete\\(" }
+  ]
+}

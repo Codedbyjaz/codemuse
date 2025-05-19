@@ -1,0 +1,99 @@
+🧠🛡️🚀 REPLIT PROMPT: Future-Proof 2027-Ready Umbra Tech Deployment
+replit
+Copy
+Edit
+Final audit and upgrade for Umbra Tech donation site and backend. Make it fully secure, scalable, bug-free, and future-proof for public launch and long-term growth.
+
+🧩 GOAL: Build a production-grade donation platform and admin system using the latest security, UX, and API best practices. Must support global donors, Stripe-based payments, and expansion to a funder ecosystem.
+
+---
+
+🔐 SECURITY (Bug-Free + Hacker-Resistant):
+
+✅ Sanitize all user input (frontend and backend)
+✅ Lock all POST routes to expected input schema
+✅ Use express-rate-limit to avoid abuse
+✅ Add helmet for HTTP headers
+✅ Validate Stripe webhook signatures (if used)
+✅ Prevent Stripe amount manipulation (fixed price IDs only)
+✅ Use environment variables for ALL keys and admin credentials
+✅ Block access to hidden files or debug data
+✅ Hide any dev tools, logs, or test elements
+
+---
+
+📈 DONATION SYSTEM (Live & Smart):
+
+✅ `/create-checkout-session` route should:
+- Use real price ID `price_1REfTjCp4UU2EU8IxhQZxxxl`
+- Redirect to `/thank-you.html` on success
+- Redirect to `/donation-failed.html` on cancel
+- Log donation data (amount, UTM source, timestamp) server-side
+
+✅ Build a dynamic donation tracker on the frontend:
+- Pulls real donation total from Stripe or logs
+- Visual progress bar (% to $25,000 goal)
+- Auto-hides bar if $0 and displays: “Be the first to support our mission!”
+
+---
+
+📊 ADMIN + GROWTH SYSTEMS:
+
+✅ Add `/admin-dashboard`:
+- Password protected (from `.env` ADMIN_PASS)
+- Show:
+  - Total raised
+  - Average donation
+  - Donor history (last 10)
+  - Export to CSV
+- Visual donation chart (daily/weekly Stripe data)
+
+✅ Enable full UTM tracking:
+- Capture `utm_source`, `utm_medium`, `utm_campaign`
+- Attach to donation logs or Stripe metadata
+- Add analytics (Plausible or GA4)
+
+---
+
+🧱 FAILSAFES + USER EXPERIENCE:
+
+✅ `/donation-failed.html`: friendly fallback
+✅ `/thank-you.html`: warm success message, share options
+✅ `/error.html`: global crash fallback
+✅ Add `MAINTENANCE=true` flag in `.env` that disables donate button and shows message
+✅ Hide “supporters” or “sponsors” section if no data exists
+
+---
+
+🎯 MARKETING + SCALING:
+
+✅ Add SEO tags and meta data:
+- Title: Umbra Tech – Creator-led tools
+- Description: Support innovation in open tech & indie software
+- Keywords: donate indie tech, fund startup, sponsor tools
+- OG & Twitter card data
+- Image preview for social sharing
+
+✅ Create `/fund-us.html` and `/press-kit.html`:
+- Fund Us = mission, roadmap, donation goal, Stripe link
+- Press Kit = logo download, founder quote, tagline, social links, donation impact
+
+✅ Confirm mobile responsiveness
+✅ Minify CSS and JS where possible
+✅ Remove test code, console logs, placeholder text/images
+
+---
+
+🛡️ FUTURE-PROOFING:
+
+✅ All logic should be modular, exportable, and reusable
+✅ All sensitive values must use `.env`
+✅ Error handling on all endpoints with logs + user-facing messages
+✅ Add `lastUpdated` tag in backend to track code freshness
+✅ Everything must survive 2027 without tech debt
+
+---
+
+Make all updates and test functionality before pushing live.  
+This project is going public—make it beautiful, secure, and unstoppable.
+
