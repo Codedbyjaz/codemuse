@@ -3,142 +3,55 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-var _exportNames = {
-  createStaticNavigation: true,
-  Link: true,
-  LinkingContext: true,
-  LocaleDirContext: true,
-  NavigationContainer: true,
-  ServerContainer: true,
-  DarkTheme: true,
-  DefaultTheme: true,
-  UNSTABLE_UnhandledLinkingContext: true,
-  useLinkBuilder: true,
-  useLinkProps: true,
-  useLinkTo: true,
-  useLocale: true,
-  useScrollToTop: true
-};
-Object.defineProperty(exports, "DarkTheme", {
+Object.defineProperty(exports, "BottomTabBar", {
   enumerable: true,
   get: function () {
-    return _DarkTheme.DarkTheme;
+    return _BottomTabBar.BottomTabBar;
   }
 });
-Object.defineProperty(exports, "DefaultTheme", {
+Object.defineProperty(exports, "BottomTabBarHeightCallbackContext", {
   enumerable: true,
   get: function () {
-    return _DefaultTheme.DefaultTheme;
+    return _BottomTabBarHeightCallbackContext.BottomTabBarHeightCallbackContext;
   }
 });
-Object.defineProperty(exports, "Link", {
+Object.defineProperty(exports, "BottomTabBarHeightContext", {
   enumerable: true,
   get: function () {
-    return _Link.Link;
+    return _BottomTabBarHeightContext.BottomTabBarHeightContext;
   }
 });
-Object.defineProperty(exports, "LinkingContext", {
+Object.defineProperty(exports, "BottomTabView", {
   enumerable: true,
   get: function () {
-    return _LinkingContext.LinkingContext;
+    return _BottomTabView.BottomTabView;
   }
 });
-Object.defineProperty(exports, "LocaleDirContext", {
+exports.TransitionSpecs = exports.TransitionPresets = exports.SceneStyleInterpolators = void 0;
+Object.defineProperty(exports, "createBottomTabNavigator", {
   enumerable: true,
   get: function () {
-    return _LocaleDirContext.LocaleDirContext;
+    return _createBottomTabNavigator.createBottomTabNavigator;
   }
 });
-Object.defineProperty(exports, "NavigationContainer", {
+Object.defineProperty(exports, "useBottomTabBarHeight", {
   enumerable: true,
   get: function () {
-    return _NavigationContainer.NavigationContainer;
+    return _useBottomTabBarHeight.useBottomTabBarHeight;
   }
 });
-Object.defineProperty(exports, "ServerContainer", {
-  enumerable: true,
-  get: function () {
-    return _ServerContainer.ServerContainer;
-  }
-});
-Object.defineProperty(exports, "UNSTABLE_UnhandledLinkingContext", {
-  enumerable: true,
-  get: function () {
-    return _UnhandledLinkingContext.UnhandledLinkingContext;
-  }
-});
-Object.defineProperty(exports, "createStaticNavigation", {
-  enumerable: true,
-  get: function () {
-    return _createStaticNavigation.createStaticNavigation;
-  }
-});
-Object.defineProperty(exports, "useLinkBuilder", {
-  enumerable: true,
-  get: function () {
-    return _useLinkBuilder.useLinkBuilder;
-  }
-});
-Object.defineProperty(exports, "useLinkProps", {
-  enumerable: true,
-  get: function () {
-    return _useLinkProps.useLinkProps;
-  }
-});
-Object.defineProperty(exports, "useLinkTo", {
-  enumerable: true,
-  get: function () {
-    return _useLinkTo.useLinkTo;
-  }
-});
-Object.defineProperty(exports, "useLocale", {
-  enumerable: true,
-  get: function () {
-    return _useLocale.useLocale;
-  }
-});
-Object.defineProperty(exports, "useScrollToTop", {
-  enumerable: true,
-  get: function () {
-    return _useScrollToTop.useScrollToTop;
-  }
-});
-var _createStaticNavigation = require("./createStaticNavigation.js");
-var _Link = require("./Link.js");
-var _LinkingContext = require("./LinkingContext.js");
-var _LocaleDirContext = require("./LocaleDirContext.js");
-var _NavigationContainer = require("./NavigationContainer.js");
-var _ServerContainer = require("./ServerContainer.js");
-var _DarkTheme = require("./theming/DarkTheme.js");
-var _DefaultTheme = require("./theming/DefaultTheme.js");
-var _types = require("./types.js");
-Object.keys(_types).forEach(function (key) {
-  if (key === "default" || key === "__esModule") return;
-  if (Object.prototype.hasOwnProperty.call(_exportNames, key)) return;
-  if (key in exports && exports[key] === _types[key]) return;
-  Object.defineProperty(exports, key, {
-    enumerable: true,
-    get: function () {
-      return _types[key];
-    }
-  });
-});
-var _UnhandledLinkingContext = require("./UnhandledLinkingContext.js");
-var _useLinkBuilder = require("./useLinkBuilder.js");
-var _useLinkProps = require("./useLinkProps.js");
-var _useLinkTo = require("./useLinkTo.js");
-var _useLocale = require("./useLocale.js");
-var _useScrollToTop = require("./useScrollToTop.js");
-var _core = require("@react-navigation/core");
-Object.keys(_core).forEach(function (key) {
-  if (key === "default" || key === "__esModule") return;
-  if (Object.prototype.hasOwnProperty.call(_exportNames, key)) return;
-  if (key in exports && exports[key] === _core[key]) return;
-  Object.defineProperty(exports, key, {
-    enumerable: true,
-    get: function () {
-      return _core[key];
-    }
-  });
-});
+var SceneStyleInterpolators = _interopRequireWildcard(require("./TransitionConfigs/SceneStyleInterpolators.js"));
+exports.SceneStyleInterpolators = SceneStyleInterpolators;
+var TransitionPresets = _interopRequireWildcard(require("./TransitionConfigs/TransitionPresets.js"));
+exports.TransitionPresets = TransitionPresets;
+var TransitionSpecs = _interopRequireWildcard(require("./TransitionConfigs/TransitionSpecs.js"));
+exports.TransitionSpecs = TransitionSpecs;
+var _createBottomTabNavigator = require("./navigators/createBottomTabNavigator.js");
+var _BottomTabBar = require("./views/BottomTabBar.js");
+var _BottomTabView = require("./views/BottomTabView.js");
+var _BottomTabBarHeightCallbackContext = require("./utils/BottomTabBarHeightCallbackContext.js");
+var _BottomTabBarHeightContext = require("./utils/BottomTabBarHeightContext.js");
+var _useBottomTabBarHeight = require("./utils/useBottomTabBarHeight.js");
+function _getRequireWildcardCache(e) { if ("function" != typeof WeakMap) return null; var r = new WeakMap(), t = new WeakMap(); return (_getRequireWildcardCache = function (e) { return e ? t : r; })(e); }
+function _interopRequireWildcard(e, r) { if (!r && e && e.__esModule) return e; if (null === e || "object" != typeof e && "function" != typeof e) return { default: e }; var t = _getRequireWildcardCache(r); if (t && t.has(e)) return t.get(e); var n = { __proto__: null }, a = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var u in e) if ("default" !== u && {}.hasOwnProperty.call(e, u)) { var i = a ? Object.getOwnPropertyDescriptor(e, u) : null; i && (i.get || i.set) ? Object.defineProperty(n, u, i) : n[u] = e[u]; } return n.default = e, t && t.set(e, n), n; }
 //# sourceMappingURL=index.js.map
