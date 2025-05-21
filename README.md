@@ -1,5 +1,5 @@
-# `@react-navigation/native`
+# `@react-navigation/bottom-tabs`
 
-React Native integration for React Navigation.
+Bottom tab navigator for React Navigation following iOS design guidelines.
 
-Installation instructions and documentation can be found on the [React Navigation website](https://reactnavigation.org/docs/getting-started/).
+Installation instructions and documentation can be found on the [React Navigation website](https://reactnavigation.org/docs/bottom-tab-navigator/).
