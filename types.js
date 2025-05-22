@@ -1,4 +1,4 @@
 "use strict";
 
-export {};
+export class PrivateValueStore {}
 //# sourceMappingURL=types.js.map
