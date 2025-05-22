@@ -1,1054 +1,682 @@
 import type {
-  DefaultRouterOptions,
-  InitialState,
-  NavigationAction,
-  NavigationState,
+  DefaultNavigatorOptions,
+  Descriptor,
+  NavigationHelpers,
+  NavigationProp,
   ParamListBase,
-  PartialState,
   Route,
-  Router,
-} from '@react-navigation/routers';
-import type * as React from 'react';
+  RouteProp,
+  StackActionHelpers,
+  StackNavigationState,
+  StackRouterOptions,
+  Theme,
+} from '@react-navigation/native';
+import type {
+  ImageSourcePropType,
+  StyleProp,
+  TextStyle,
+  ViewStyle,
+} from 'react-native';
+import type {
+  ScreenProps,
+  ScreenStackHeaderConfigProps,
+  SearchBarProps,
+} from 'react-native-screens';
 
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace ReactNavigation {
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
-    interface RootParamList {}
+export type NativeStackNavigationEventMap = {
+  /**
+   * Event which fires when a transition animation starts.
+   */
+  transitionStart: { data: { closing: boolean } };
+  /**
+   * Event which fires when a transition animation ends.
+   */
+  transitionEnd: { data: { closing: boolean } };
+  /**
+   * Event which fires when a swipe back is canceled on iOS.
+   */
+  gestureCancel: { data: undefined };
+  /**
+   * Event which fires when screen is in sheet presentation & it's detent changes.
+   *
+   * In payload it caries two fields:
+   *
+   * * `index` - current detent index in the `sheetAllowedDetents` array,
+   * * `stable` - on Android `false` value means that the user is dragging the sheet or it is settling; on iOS it is always `true`.
+   */
+  sheetDetentChange: { data: { index: number; stable: boolean } };
+};
 
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
-    interface Theme {}
-  }
-}
-
-type Keyof<T extends {}> = Extract<keyof T, string>;
-
-export type DefaultNavigatorOptions<
+export type NativeStackNavigationProp<
   ParamList extends ParamListBase,
-  NavigatorID extends string | undefined,
-  State extends NavigationState,
-  ScreenOptions extends {},
-  EventMap extends EventMapBase,
-  Navigation,
-> = DefaultRouterOptions<Keyof<ParamList>> & {
-  /**
-   * Children React Elements to extract the route configuration from.
-   * Only `Screen`, `Group` and `React.Fragment` are supported as children.
-   */
-  children: React.ReactNode;
-
-  /**
-   * Layout for the navigator.
-   * Useful for wrapping with a component with access to navigator's state and options.
-   */
-  layout?: (props: {
-    state: State;
-    navigation: NavigationHelpers<ParamList>;
-    descriptors: Record<
-      string,
-      Descriptor<
-        ScreenOptions,
-        NavigationProp<
-          ParamList,
-          keyof ParamList,
-          string | undefined,
-          State,
-          ScreenOptions,
-          EventMap
-        >,
-        RouteProp<ParamList>
-      >
-    >;
-    children: React.ReactNode;
-  }) => React.ReactElement;
-
-  /**
-   * Event listeners for all the screens in the navigator.
-   */
-  screenListeners?:
-    | ScreenListeners<State, EventMap>
-    | ((props: {
-        route: RouteProp<ParamList>;
-        navigation: Navigation;
-      }) => ScreenListeners<State, EventMap>);
-
-  /**
-   * Default options for all screens under this navigator.
-   */
-  screenOptions?:
-    | ScreenOptions
-    | ((props: {
-        route: RouteProp<ParamList>;
-        navigation: Navigation;
-        theme: ReactNavigation.Theme;
-      }) => ScreenOptions);
-
-  /**
-   * Layout for all screens under this navigator.
-   */
-  screenLayout?: (props: {
-    route: RouteProp<ParamList, keyof ParamList>;
-    navigation: Navigation;
-    theme: ReactNavigation.Theme;
-    children: React.ReactElement;
-  }) => React.ReactElement;
-
-  /**
-   * A function returning overrides for the underlying router used by the navigator.
-   * The overrides will be shallow merged onto the original router.
-   * It receives the original router as an argument to the function.
-   *
-   * This must be a pure function and cannot reference outside dynamic variables.
-   */
-  UNSTABLE_router?: <Action extends NavigationAction>(
-    original: Router<State, Action>
-  ) => Partial<Router<State, Action>>;
-} & (NavigatorID extends string
-    ? {
-        /**
-         * Optional ID for the navigator. Can be used with `navigation.getParent(id)` to refer to a parent.
-         */
-        id: NavigatorID;
-      }
-    : {
-        id?: undefined;
-      });
-
-export type EventMapBase = Record<
-  string,
-  { data?: any; canPreventDefault?: boolean }
->;
-
-export type EventMapCore<State extends NavigationState> = {
-  focus: { data: undefined };
-  blur: { data: undefined };
-  state: { data: { state: State } };
-  beforeRemove: { data: { action: NavigationAction }; canPreventDefault: true };
-};
-
-export type EventArg<
-  EventName,
-  CanPreventDefault extends boolean | undefined = false,
-  Data = undefined,
-> = {
-  /**
-   * Type of the event (e.g. `focus`, `blur`)
-   */
-  readonly type: EventName;
-  readonly target?: string;
-} & (CanPreventDefault extends true
-  ? {
-      /**
-       * Whether `event.preventDefault()` was called on this event object.
-       */
-      readonly defaultPrevented: boolean;
-      /**
-       * Prevent the default action which happens on this event.
-       */
-      preventDefault(): void;
-    }
-  : {}) &
-  (undefined extends Data
-    ? { readonly data?: Readonly<Data> }
-    : { readonly data: Readonly<Data> });
-
-export type EventListenerCallback<
-  EventMap extends EventMapBase,
-  EventName extends keyof EventMap,
-  EventCanPreventDefault extends
-    | boolean
-    | undefined = EventMap[EventName]['canPreventDefault'],
-> = (
-  e: EventArg<
-    EventName,
-    undefined extends EventCanPreventDefault ? false : EventCanPreventDefault,
-    EventMap[EventName]['data']
-  >
-) => void;
-
-export type EventConsumer<EventMap extends EventMapBase> = {
-  /**
-   * Subscribe to events from the parent navigator.
-   *
-   * @param type Type of the event (e.g. `focus`, `blur`)
-   * @param callback Callback listener which is executed upon receiving the event.
-   */
-  addListener<EventName extends Keyof<EventMap>>(
-    type: EventName,
-    callback: EventListenerCallback<EventMap, EventName>
-  ): () => void;
-  removeListener<EventName extends Keyof<EventMap>>(
-    type: EventName,
-    callback: EventListenerCallback<EventMap, EventName>
-  ): void;
-};
-
-export type EventEmitter<EventMap extends EventMapBase> = {
-  /**
-   * Emit an event to child screens.
-   *
-   * @param options.type Type of the event (e.g. `focus`, `blur`)
-   * @param [options.data] Optional information regarding the event.
-   * @param [options.target] Key of the target route which should receive the event.
-   * If not specified, all routes receive the event.
-   */
-  emit<EventName extends Keyof<EventMap>>(
-    options: {
-      type: EventName;
-      target?: string;
-    } & (EventMap[EventName]['canPreventDefault'] extends true
-      ? { canPreventDefault: true }
-      : {}) &
-      (undefined extends EventMap[EventName]['data']
-        ? { data?: EventMap[EventName]['data'] }
-        : { data: EventMap[EventName]['data'] })
-  ): EventArg<
-    EventName,
-    EventMap[EventName]['canPreventDefault'],
-    EventMap[EventName]['data']
-  >;
-};
-
-export class PrivateValueStore<T extends [any, any, any]> {
-  /**
-   * UGLY HACK! DO NOT USE THE TYPE!!!
-   *
-   * TypeScript requires a type to be used to be able to infer it.
-   * The type should exist as its own without any operations such as union.
-   * So we need to figure out a way to store this type in a property.
-   * The problem with a normal property is that it shows up in intelliSense.
-   * Adding private keyword works, but the annotation is stripped away in declaration.
-   * Turns out if we use an empty string, it doesn't show up in intelliSense.
-   */
-  protected ''?: T;
-}
-
-type NavigationHelpersCommon<
-  ParamList extends ParamListBase,
-  State extends NavigationState = NavigationState,
-> = {
-  /**
-   * Dispatch an action or an update function to the router.
-   * The update function will receive the current state,
-   *
-   * @param action Action object or update function.
-   */
-  dispatch(
-    action: NavigationAction | ((state: Readonly<State>) => NavigationAction)
-  ): void;
-
-  /**
-   * Navigate to a screen in the current or parent navigator.
-   * If we're already on the screen, update the params instead.
-   *
-   * @param screen Name of the route to navigate to.
-   * @param [params] Params object for the route.
-   * @param [options.merge] Whether to merge the params onto the route. Defaults to `false`.
-   * @param [options.pop] Whether to pop routes in a stack to go back to the matching route. Defaults to `false`.
-   */
-  navigate<RouteName extends keyof ParamList>(
-    ...args: // This condition allows us to iterate over a union type
-    // This is to avoid getting a union of all the params from `ParamList[RouteName]`,
-    // which will get our types all mixed up if a union RouteName is passed in.
-    RouteName extends unknown
-      ? // This condition checks if the params are optional,
-        // which means it's either undefined or a union with undefined
-        undefined extends ParamList[RouteName]
-        ? [
-            screen: RouteName,
-            params?: ParamList[RouteName],
-            options?: { merge?: boolean; pop?: boolean },
-          ]
-        : [
-            screen: RouteName,
-            params: ParamList[RouteName],
-            options?: { merge?: boolean; pop?: boolean },
-          ]
-      : never
-  ): void;
-
-  /**
-   * Navigate to a route in current navigation tree.
-   *
-   * @param options.name Name of the route to navigate to.
-   * @param [options.params] Params object for the route.
-   * @param [options.path] Path to associate the route with (e.g. for deep links).
-   * @param [options.merge] Whether to merge the params onto the route. Defaults to `false`.
-   * @param [options.pop] Whether to pop routes in a stack to go back to the matching route. Defaults to `false`.
-   */
-  navigate<RouteName extends keyof ParamList>(
-    options: RouteName extends unknown
-      ? {
-          name: RouteName;
-          params: ParamList[RouteName];
-          path?: string;
-          merge?: boolean;
-          pop?: boolean;
-        }
-      : never
-  ): void;
-
-  /**
-   * Navigate to a route in current navigation tree.
-   *
-   * @deprecated Use `navigate` instead.
-   *
-   * @param screen Name of the route to navigate to.
-   * @param [params] Params object for the route.
-   */
-  navigateDeprecated<RouteName extends keyof ParamList>(
-    ...args: RouteName extends unknown
-      ? undefined extends ParamList[RouteName]
-        ? [screen: RouteName, params?: ParamList[RouteName]]
-        : [screen: RouteName, params: ParamList[RouteName]]
-      : never
-  ): void;
-
-  /**
-   * Navigate to a route in current navigation tree.
-   *
-   * @deprecated Use `navigate` instead.
-   *
-   * @param options Object with `name` for the route to navigate to, and a `params` object.
-   */
-  navigateDeprecated<RouteName extends keyof ParamList>(
-    options: RouteName extends unknown
-      ? {
-          name: RouteName;
-          params: ParamList[RouteName];
-          merge?: boolean;
-        }
-      : never
-  ): void;
-
-  /**
-   * Preloads the route in current navigation tree.
-   *
-   * @param screen Name of the route to preload.
-   * @param [params] Params object for the route.
-   */
-  preload<RouteName extends keyof ParamList>(
-    ...args: RouteName extends unknown
-      ? undefined extends ParamList[RouteName]
-        ? [screen: RouteName, params?: ParamList[RouteName]]
-        : [screen: RouteName, params: ParamList[RouteName]]
-      : never
-  ): void;
-
-  /**
-   * Reset the navigation state to the provided state.
-   *
-   * @param state Navigation state object.
-   */
-  reset(state: PartialState<State> | State): void;
-
-  /**
-   * Go back to the previous route in history.
-   */
-  goBack(): void;
-
-  /**
-   * Check if the screen is focused. The method returns `true` if focused, `false` otherwise.
-   * Note that this method doesn't re-render screen when the focus changes. So don't use it in `render`.
-   * To get notified of focus changes, use `addListener('focus', cb)` and `addListener('blur', cb)`.
-   * To conditionally render content based on focus state, use the `useIsFocused` hook.
-   */
-  isFocused(): boolean;
-
-  /**
-   * Check if dispatching back action will be handled by navigation.
-   * Note that this method doesn't re-render screen when the result changes. So don't use it in `render`.
-   */
-  canGoBack(): boolean;
-
-  /**
-   * Returns the name of the navigator specified in the `name` prop.
-   * If no name is specified, returns `undefined`.
-   */
-  getId(): string | undefined;
-
-  /**
-   * Returns the navigation helpers from a parent navigator based on the ID.
-   * If an ID is provided, the navigation helper from the parent navigator with matching ID (including current) will be returned.
-   * If no ID is provided, the navigation helper from the immediate parent navigator will be returned.
-   *
-   * @param id Optional ID of a parent navigator.
-   */
-  getParent<T = NavigationHelpers<ParamListBase> | undefined>(id?: string): T;
-
-  /**
-   * Returns the navigator's state.
-   * Note that this method doesn't re-render screen when the result changes. So don't use it in `render`.
-   */
-  getState(): State;
-  /**
-   * Schedules the given state to be used as navigation state when the list of screens defined in the navigator changes
-   * instead of automatically calculating the new state, e.g. due to conditional rendering or dynamically defining screens.
-   *
-   * @param state Navigation state object.
-   */
-  setStateForNextRouteNamesChange(state: PartialState<State> | State): void;
-} & PrivateValueStore<[ParamList, unknown, unknown]>;
-
-export type NavigationHelpers<
-  ParamList extends ParamListBase,
-  EventMap extends EventMapBase = {},
-> = NavigationHelpersCommon<ParamList> &
-  EventEmitter<EventMap> & {
-    /**
-     * Update the param object for the route.
-     * The new params will be shallow merged with the old one.
-     *
-     * @param params Params object for the current route.
-     */
-    setParams<RouteName extends keyof ParamList>(
-      params: Partial<ParamList[RouteName]>
-    ): void;
-  };
-
-export type NavigationContainerProps = {
-  /**
-   * Initial navigation state for the child navigators.
-   */
-  initialState?: InitialState;
-  /**
-   * Callback which is called with the latest navigation state when it changes.
-   */
-  onStateChange?: (state: Readonly<NavigationState> | undefined) => void;
-  /**
-   * Callback which is called after the navigation tree mounts.
-   */
-  onReady?: () => void;
-  /**
-   * Callback which is called when an action is not handled.
-   */
-  onUnhandledAction?: (action: Readonly<NavigationAction>) => void;
-  /**
-   * Whether child navigator should handle a navigation action.
-   * The child navigator needs to be mounted before it can handle the action.
-   * Defaults to `false`.
-   *
-   * This will be removed in the next major release.
-   *
-   * @deprecated Use nested navigation API instead
-   */
-  navigationInChildEnabled?: boolean;
-  /**
-   * Theme object for the UI elements.
-   */
-  theme?: ReactNavigation.Theme;
-  /**
-   * Children elements to render.
-   */
-  children: React.ReactNode;
-};
-
-export type NavigationProp<
-  ParamList extends {},
-  RouteName extends keyof ParamList = Keyof<ParamList>,
+  RouteName extends keyof ParamList = string,
   NavigatorID extends string | undefined = undefined,
-  State extends NavigationState = NavigationState<ParamList>,
-  ScreenOptions extends {} = {},
-  EventMap extends EventMapBase = {},
-> = Omit<NavigationHelpersCommon<ParamList, State>, 'getParent'> & {
-  /**
-   * Returns the navigation prop from a parent navigator based on the ID.
-   * If an ID is provided, the navigation prop from the parent navigator with matching ID (including current) will be returned.
-   * If no ID is provided, the navigation prop from the immediate parent navigator will be returned.
-   *
-   * @param id Optional ID of a parent navigator.
-   */
-  getParent<T = NavigationProp<ParamListBase> | undefined>(id?: NavigatorID): T;
-
-  /**
-   * Update the param object for the route.
-   * The new params will be shallow merged with the old one.
-   *
-   * @param params Params object for the current route.
-   */
-  setParams(
-    params: ParamList[RouteName] extends undefined
-      ? undefined
-      : Partial<ParamList[RouteName]>
-  ): void;
-
-  /**
-   * Update the options for the route.
-   * The options object will be shallow merged with default options object.
-   *
-   * @param update Options object or a callback which takes the options from navigator config and returns a new options object.
-   */
-  setOptions(options: Partial<ScreenOptions>): void;
-} & EventConsumer<EventMap & EventMapCore<State>> &
-  PrivateValueStore<[ParamList, RouteName, EventMap]>;
-
-export type RouteProp<
-  ParamList extends ParamListBase,
-  RouteName extends keyof ParamList = Keyof<ParamList>,
-> = Route<Extract<RouteName, string>, ParamList[RouteName]>;
-
-export type CompositeNavigationProp<
-  A extends NavigationProp<ParamListBase, string, any, any, any>,
-  B extends NavigationHelpersCommon<ParamListBase, any>,
-> = Omit<A & B, keyof NavigationProp<any>> &
-  NavigationProp<
-    /**
-     * Param list from both navigation objects needs to be combined
-     * For example, we should be able to navigate to screens in both A and B
-     */
-    (A extends NavigationHelpersCommon<infer T> ? T : never) &
-      (B extends NavigationHelpersCommon<infer U> ? U : never),
-    /**
-     * The route name should refer to the route name specified in the first type
-     * Ideally it should work for any of them, but it's not possible to infer that way
-     */
-    A extends NavigationProp<any, infer R> ? R : string,
-    /**
-     * ID from both navigation objects needs to be combined for `getParent`
-     */
-    | (A extends NavigationProp<any, any, infer I> ? I : never)
-    | (B extends NavigationProp<any, any, infer J> ? J : never),
-    /**
-     * The type of state should refer to the state specified in the first type
-     */
-    A extends NavigationProp<any, any, any, infer S> ? S : NavigationState,
-    /**
-     * Screen options should refer to the options specified in the first type
-     */
-    A extends NavigationProp<any, any, any, any, infer O> ? O : {},
-    /**
-     * Event consumer config should refer to the config specified in the first type
-     * This allows typechecking `addListener`/`removeListener`
-     */
-    A extends NavigationProp<any, any, any, any, any, infer E> ? E : {}
-  >;
-
-export type CompositeScreenProps<
-  A extends {
-    navigation: NavigationProp<
-      ParamListBase,
-      string,
-      string | undefined,
-      any,
-      any,
-      any
-    >;
-    route: RouteProp<ParamListBase>;
-  },
-  B extends {
-    navigation: NavigationHelpersCommon<any, any>;
-  },
-> = {
-  navigation: CompositeNavigationProp<A['navigation'], B['navigation']>;
-  route: A['route'];
-};
-
-export type Descriptor<
-  ScreenOptions extends {},
-  Navigation extends NavigationProp<any, any, any, any, any, any>,
-  Route extends RouteProp<any, any>,
-> = {
-  /**
-   * Render the component associated with this route.
-   */
-  render(): React.JSX.Element;
-
-  /**
-   * Options for the route.
-   */
-  options: ScreenOptions;
-
-  /**
-   * Route object for the screen
-   */
-  route: Route;
-
-  /**
-   * Navigation object for the screen
-   */
-  navigation: Navigation;
-};
-
-export type ScreenListeners<
-  State extends NavigationState,
-  EventMap extends EventMapBase,
-> = Partial<{
-  [EventName in keyof (EventMap & EventMapCore<State>)]: EventListenerCallback<
-    EventMap & EventMapCore<State>,
-    EventName
-  >;
-}>;
-
-type ScreenComponentType<
-  ParamList extends ParamListBase,
-  RouteName extends keyof ParamList,
-> =
-  | React.ComponentType<{
-      route: RouteProp<ParamList, RouteName>;
-      navigation: any;
-    }>
-  | React.ComponentType<{}>;
-
-export type RouteConfigComponent<
-  ParamList extends ParamListBase,
-  RouteName extends keyof ParamList,
-> =
-  | {
-      /**
-       * React component to render for this screen.
-       */
-      component: ScreenComponentType<ParamList, RouteName>;
-      getComponent?: never;
-      children?: never;
-    }
-  | {
-      /**
-       * Lazily get a React component to render for this screen.
-       */
-      getComponent: () => ScreenComponentType<ParamList, RouteName>;
-      component?: never;
-      children?: never;
-    }
-  | {
-      /**
-       * Render callback to render content of this screen.
-       */
-      children: (props: {
-        route: RouteProp<ParamList, RouteName>;
-        navigation: any;
-      }) => React.ReactNode;
-      component?: never;
-      getComponent?: never;
-    };
-
-export type RouteConfigProps<
-  ParamList extends ParamListBase,
-  RouteName extends keyof ParamList,
-  State extends NavigationState,
-  ScreenOptions extends {},
-  EventMap extends EventMapBase,
-  Navigation,
-> = {
-  /**
-   * Optional key for this screen. This doesn't need to be unique.
-   * If the key changes, existing screens with this name will be removed or reset.
-   * Useful when we have some common screens and have conditional rendering.
-   */
-  navigationKey?: string;
-
-  /**
-   * Route name of this screen.
-   */
-  name: RouteName;
-
-  /**
-   * Navigator options for this screen.
-   */
-  options?:
-    | ScreenOptions
-    | ((props: {
-        route: RouteProp<ParamList, RouteName>;
-        navigation: Navigation;
-        theme: ReactNavigation.Theme;
-      }) => ScreenOptions);
-
-  /**
-   * Event listeners for this screen.
-   */
-  listeners?:
-    | ScreenListeners<State, EventMap>
-    | ((props: {
-        route: RouteProp<ParamList, RouteName>;
-        navigation: Navigation;
-      }) => ScreenListeners<State, EventMap>);
-
-  /**
-   * Layout for this screen.
-   * Useful for wrapping the screen with custom containers.
-   * e.g. for styling, error boundaries, suspense, etc.
-   */
-  layout?: (props: {
-    route: RouteProp<ParamList, RouteName>;
-    navigation: Navigation;
-    theme: ReactNavigation.Theme;
-    children: React.ReactElement;
-  }) => React.ReactElement;
-
-  /**
-   * Function to return an unique ID for this screen.
-   * Receives an object with the route params.
-   * For a given screen name, there will always be only one screen corresponding to an ID.
-   * If `undefined` is returned, it acts same as no `getId` being specified.
-   */
-  getId?: ({
-    params,
-  }: {
-    params: Readonly<ParamList[RouteName]>;
-  }) => string | undefined;
-
-  /**
-   * Initial params object for the route.
-   */
-  initialParams?: Partial<ParamList[RouteName]>;
-};
-
-export type RouteConfig<
-  ParamList extends ParamListBase,
-  RouteName extends keyof ParamList,
-  State extends NavigationState,
-  ScreenOptions extends {},
-  EventMap extends EventMapBase,
-  Navigation,
-> = RouteConfigProps<
+> = NavigationProp<
   ParamList,
   RouteName,
-  State,
-  ScreenOptions,
-  EventMap,
-  Navigation
+  NavigatorID,
+  StackNavigationState<ParamList>,
+  NativeStackNavigationOptions,
+  NativeStackNavigationEventMap
 > &
-  RouteConfigComponent<ParamList, RouteName>;
+  StackActionHelpers<ParamList>;
 
-export type RouteGroupConfig<
+export type NativeStackScreenProps<
   ParamList extends ParamListBase,
-  ScreenOptions extends {},
-  Navigation,
+  RouteName extends keyof ParamList = string,
+  NavigatorID extends string | undefined = undefined,
 > = {
-  /**
-   * Optional key for the screens in this group.
-   * If the key changes, all existing screens in this group will be removed or reset.
-   */
-  navigationKey?: string;
+  navigation: NativeStackNavigationProp<ParamList, RouteName, NavigatorID>;
+  route: RouteProp<ParamList, RouteName>;
+};
 
+export type NativeStackOptionsArgs<
+  ParamList extends ParamListBase,
+  RouteName extends keyof ParamList = keyof ParamList,
+  NavigatorID extends string | undefined = undefined,
+> = NativeStackScreenProps<ParamList, RouteName, NavigatorID> & {
+  theme: Theme;
+};
+
+export type NativeStackNavigationHelpers = NavigationHelpers<
+  ParamListBase,
+  NativeStackNavigationEventMap
+>;
+
+// We want it to be an empty object because navigator does not have any additional props
+export type NativeStackNavigationConfig = {};
+
+export type NativeStackHeaderProps = {
   /**
-   * Navigator options for this screen.
+   * Options for the back button.
    */
-  screenOptions?:
-    | ScreenOptions
+  back?: {
+    /**
+     * Title of the previous screen.
+     */
+    title: string | undefined;
+    /**
+     * The `href` to use for the anchor tag on web
+     */
+    href: string | undefined;
+  };
+  /**
+   * Options for the current screen.
+   */
+  options: NativeStackNavigationOptions;
+  /**
+   * Route object for the current screen.
+   */
+  route: Route<string>;
+  /**
+   * Navigation prop for the header.
+   */
+  navigation: NativeStackNavigationProp<ParamListBase>;
+};
+
+export type NativeStackHeaderRightProps = {
+  /**
+   * Tint color for the header.
+   */
+  tintColor?: string;
+  /**
+   * Whether it's possible to navigate back in stack.
+   */
+  canGoBack?: boolean;
+};
+
+export type NativeStackHeaderLeftProps = NativeStackHeaderRightProps & {
+  /**
+   * Label text for the button. Usually the title of the previous screen.
+   * By default, this is only shown on iOS.
+   */
+  label?: string;
+  /**
+   * The `href` to use for the anchor tag on web
+   */
+  href?: string;
+};
+
+export type NativeStackNavigationOptions = {
+  /**
+   * String that can be displayed in the header as a fallback for `headerTitle`.
+   */
+  title?: string;
+  /**
+   * Function that given `HeaderProps` returns a React Element to display as a header.
+   */
+  header?: (props: NativeStackHeaderProps) => React.ReactNode;
+  /**
+   * Whether the back button is visible in the header.
+   * You can use it to show a back button alongside `headerLeft` if you have specified it.
+   *
+   * This will have no effect on the first screen in the stack.
+   */
+  headerBackVisible?: boolean;
+  /**
+   * Title string used by the back button on iOS.
+   * Defaults to the previous scene's title.
+   * Use `headerBackButtonDisplayMode: "minimal"` to hide it.
+   *
+   * Only supported on iOS and Web.
+   *
+   * @platform ios, web
+   */
+  headerBackTitle?: string;
+  /**
+   * Style object for header back title. Supported properties:
+   * - fontFamily
+   * - fontSize
+   *
+   * Only supported on iOS and Web.
+   *
+   * @platform ios, web
+   */
+  headerBackTitleStyle?: StyleProp<{
+    fontFamily?: string;
+    fontSize?: number;
+  }>;
+  /**
+   * Image to display in the header as the icon in the back button.
+   * Defaults to back icon image for the platform
+   * - A chevron on iOS
+   * - An arrow on Android
+   */
+  headerBackImageSource?: ImageSourcePropType;
+  /**
+   * Style of the header when a large title is shown.
+   * The large title is shown if `headerLargeTitle` is `true` and
+   * the edge of any scrollable content reaches the matching edge of the header.
+   *
+   * Supported properties:
+   * - backgroundColor
+   *
+   * Only supported on iOS.
+   *
+   * @platform ios
+   */
+  headerLargeStyle?: StyleProp<{
+    backgroundColor?: string;
+  }>;
+  /**
+   * Whether to enable header with large title which collapses to regular header on scroll.
+   *
+   * For large title to collapse on scroll, the content of the screen should be wrapped in a scrollable view such as `ScrollView` or `FlatList`.
+   * If the scrollable area doesn't fill the screen, the large title won't collapse on scroll.
+   * You also need to specify `contentInsetAdjustmentBehavior="automatic"` in your `ScrollView`, `FlatList` etc.
+   *
+   * Only supported on iOS.
+   *
+   * @platform ios
+   */
+  headerLargeTitle?: boolean;
+  /**
+   * Whether drop shadow of header is visible when a large title is shown.
+   *
+   * Only supported on iOS.
+   *
+   * @platform ios
+   */
+  headerLargeTitleShadowVisible?: boolean;
+  /**
+   * Style object for large title in header. Supported properties:
+   * - fontFamily
+   * - fontSize
+   * - fontWeight
+   * - color
+   *
+   * Only supported on iOS.
+   *
+   * @platform ios
+   */
+  headerLargeTitleStyle?: StyleProp<{
+    fontFamily?: string;
+    fontSize?: number;
+    fontWeight?: string;
+    color?: string;
+  }>;
+  /**
+   * Whether to show the header. The header is shown by default.
+   * Setting this to `false` hides the header.
+   */
+  headerShown?: boolean;
+  /**
+   * Style object for header. Supported properties:
+   * - backgroundColor
+   */
+  headerStyle?: StyleProp<{
+    backgroundColor?: string;
+  }>;
+  /**
+   * Whether to hide the elevation shadow (Android) or the bottom border (iOS) on the header.
+   */
+  headerShadowVisible?: boolean;
+  /**
+   * Boolean indicating whether the navigation bar is translucent.
+   * Setting this to `true` makes the header absolutely positioned,
+   * and changes the background color to `transparent` unless specified in `headerStyle`.
+   */
+  headerTransparent?: boolean;
+  /**
+   * Blur effect for the translucent header.
+   * The `headerTransparent` option needs to be set to `true` for this to work.
+   *
+   * Only supported on iOS.
+   *
+   * @platform ios
+   */
+  headerBlurEffect?: ScreenStackHeaderConfigProps['blurEffect'];
+  /**
+   * Tint color for the header. Changes the color of back button and title.
+   */
+  headerTintColor?: string;
+  /**
+   * Function which returns a React Element to render as the background of the header.
+   * This is useful for using backgrounds such as an image, a gradient, blur effect etc.
+   * You can use this with `headerTransparent` to render content underneath a translucent header.
+   */
+  headerBackground?: () => React.ReactNode;
+  /**
+   * Function which returns a React Element to display on the left side of the header.
+   * This replaces the back button. See `headerBackVisible` to show the back button along side left element.
+   */
+  headerLeft?: (props: NativeStackHeaderLeftProps) => React.ReactNode;
+  /**
+   * Function which returns a React Element to display on the right side of the header.
+   */
+  headerRight?: (props: NativeStackHeaderRightProps) => React.ReactNode;
+  /**
+   * String or a function that returns a React Element to be used by the header.
+   * Defaults to screen `title` or route name.
+   *
+   * When a function is passed, it receives `tintColor` and`children` in the options object as an argument.
+   * The title string is passed in `children`.
+   *
+   * Note that if you render a custom element by passing a function, animations for the title won't work.
+   */
+  headerTitle?:
+    | string
     | ((props: {
-        route: RouteProp<ParamList, keyof ParamList>;
-        navigation: Navigation;
-        theme: ReactNavigation.Theme;
-      }) => ScreenOptions);
-
+        /**
+         * The title text of the header.
+         */
+        children: string;
+        /**
+         * Tint color for the header.
+         */
+        tintColor?: string;
+      }) => React.ReactNode);
   /**
-   * Layout for the screens inside the group.
-   * This will override the `screenLayout` of parent group or navigator.
+   * How to align the the header title.
+   * Defaults to `left` on platforms other than iOS.
+   *
+   * Not supported on iOS. It's always `center` on iOS and cannot be changed.
    */
-  screenLayout?:
-    | ((props: {
-        route: RouteProp<ParamList, keyof ParamList>;
-        navigation: Navigation;
-        theme: ReactNavigation.Theme;
-        children: React.ReactElement;
-      }) => React.ReactElement)
-    | {
-        // FIXME: TypeScript doesn't seem to infer `navigation` correctly without this
-      };
-
+  headerTitleAlign?: 'left' | 'center';
   /**
-   * Children React Elements to extract the route configuration from.
-   * Only `Screen`, `Group` and `React.Fragment` are supported as children.
+   * Style object for header title. Supported properties:
+   * - fontFamily
+   * - fontSize
+   * - fontWeight
+   * - color
    */
-  children: React.ReactNode;
-};
-
-export type NavigationContainerEventMap = {
-  /**
-   * Event that fires when the navigation container is ready to be used.
-   */
-  ready: {
-    data: undefined;
-  };
-  /**
-   * Event that fires when the navigation state changes.
-   */
-  state: {
-    data: {
-      /**
-       * The updated state object after the state change.
-       */
-      state: NavigationState | PartialState<NavigationState> | undefined;
-    };
-  };
-  /**
-   * Event that fires when current options changes.
-   */
-  options: { data: { options: object } };
-  /**
-   * Event that fires when an action is dispatched.
-   * Only intended for debugging purposes, don't use it for app logic.
-   * This event will be emitted before state changes have been applied.
-   */
-  __unsafe_action__: {
-    data: {
-      /**
-       * The action object that was dispatched.
-       */
-      action: NavigationAction;
-      /**
-       * Whether the action was a no-op, i.e. resulted any state changes.
-       */
-      noop: boolean;
-      /**
-       * Stack trace of the action, this will only be available during development.
-       */
-      stack: string | undefined;
-    };
-  };
-};
-
-type NotUndefined<T> = T extends undefined ? never : T;
-
-export type ParamListRoute<ParamList extends ParamListBase> = {
-  [RouteName in keyof ParamList]: NavigatorScreenParams<{}> extends ParamList[RouteName]
-    ? NotUndefined<ParamList[RouteName]> extends NavigatorScreenParams<infer T>
-      ? ParamListRoute<T>
-      : Route<Extract<RouteName, string>, ParamList[RouteName]>
-    : Route<Extract<RouteName, string>, ParamList[RouteName]>;
-}[keyof ParamList];
-
-type MaybeParamListRoute<ParamList extends {}> = ParamList extends ParamListBase
-  ? ParamListRoute<ParamList>
-  : Route<string>;
-
-export type NavigationContainerRef<ParamList extends {}> =
-  NavigationHelpers<ParamList> &
-    EventConsumer<NavigationContainerEventMap> & {
-      /**
-       * Reset the navigation state of the root navigator to the provided state.
-       *
-       * @param state Navigation state object.
-       */
-      resetRoot(state?: PartialState<NavigationState> | NavigationState): void;
-      /**
-       * Get the rehydrated navigation state of the navigation tree.
-       */
-      getRootState(): NavigationState;
-      /**
-       * Get the currently focused navigation route.
-       */
-      getCurrentRoute(): MaybeParamListRoute<ParamList> | undefined;
-      /**
-       * Get the currently focused route's options.
-       */
-      getCurrentOptions(): object | undefined;
-      /**
-       * Whether the navigation container is ready to handle actions.
-       */
-      isReady(): boolean;
-      /**
-       * Stub function for setOptions on navigation object for use with useNavigation.
-       */
-      setOptions(): never;
-      /**
-       * Stub function for getParent on navigation object for use with useNavigation.
-       */
-      getParent(): undefined;
-    };
-
-export type NavigationContainerRefWithCurrent<ParamList extends {}> =
-  NavigationContainerRef<ParamList> & {
-    current: NavigationContainerRef<ParamList> | null;
-  };
-
-export type NavigationListBase<ParamList extends ParamListBase> = {
-  [RouteName in keyof ParamList]: unknown;
-};
-
-export type TypeBag<
-  ParamList extends ParamListBase,
-  NavigatorID extends string | undefined,
-  State extends NavigationState,
-  ScreenOptions extends {},
-  EventMap extends EventMapBase,
-  NavigationList extends NavigationListBase<ParamList>,
-  Navigator extends React.ComponentType<any>,
-> = {
-  ParamList: ParamList;
-  NavigatorID: NavigatorID;
-  State: State;
-  ScreenOptions: ScreenOptions;
-  EventMap: EventMap;
-  NavigationList: NavigationList;
-  Navigator: Navigator;
-};
-
-export type NavigatorTypeBagBase = {
-  ParamList: {};
-  NavigatorID: string | undefined;
-  State: NavigationState;
-  ScreenOptions: {};
-  EventMap: {};
-  NavigationList: NavigationListBase<ParamListBase>;
-  Navigator: React.ComponentType<any>;
-};
-
-export type NavigatorTypeBag<
-  ParamList extends ParamListBase,
-  NavigatorID extends string | undefined,
-  State extends NavigationState,
-  ScreenOptions extends {},
-  EventMap extends EventMapBase,
-  NavigationList extends NavigationListBase<ParamList>,
-  Navigator extends React.ComponentType<any>,
-> = {
-  ParamList: ParamList;
-  NavigatorID: NavigatorID;
-  State: State;
-  ScreenOptions: ScreenOptions;
-  EventMap: EventMap;
-  NavigationList: NavigationList;
-  Navigator: Navigator;
-};
-
-export type TypedNavigator<
-  Bag extends NavigatorTypeBagBase,
-  Config = unknown,
-> = TypedNavigatorInternal<
-  Bag['ParamList'],
-  Bag['NavigatorID'],
-  Bag['State'],
-  Bag['ScreenOptions'],
-  Bag['EventMap'],
-  Bag['NavigationList'],
-  Bag['Navigator']
-> &
-  (undefined extends Config ? {} : { config: Config });
-
-type TypedNavigatorInternal<
-  ParamList extends ParamListBase,
-  NavigatorID extends string | undefined,
-  State extends NavigationState,
-  ScreenOptions extends {},
-  EventMap extends EventMapBase,
-  NavigationList extends NavigationListBase<ParamList>,
-  Navigator extends React.ComponentType<any>,
-> = {
-  /**
-   * Navigator component which manages the child screens.
-   */
-  Navigator: React.ComponentType<
-    Omit<
-      React.ComponentProps<Navigator>,
-      keyof DefaultNavigatorOptions<any, any, any, any, any, any>
-    > &
-      DefaultNavigatorOptions<
-        ParamList,
-        NavigatorID,
-        State,
-        ScreenOptions,
-        EventMap,
-        NavigationList[keyof ParamList]
-      >
-  >;
-  /**
-   * Component used for grouping multiple route configuration.
-   */
-  Group: React.ComponentType<
-    RouteGroupConfig<ParamList, ScreenOptions, NavigationList[keyof ParamList]>
-  >;
-  /**
-   * Component used for specifying route configuration.
-   */
-  Screen: <RouteName extends keyof ParamList>(
-    _: RouteConfig<
-      ParamList,
-      RouteName,
-      State,
-      ScreenOptions,
-      EventMap,
-      NavigationList[RouteName]
-    >
-  ) => null;
-};
-
-export type NavigatorScreenParams<ParamList extends {}> =
-  | {
-      screen?: never;
-      params?: never;
-      initial?: never;
-      pop?: never;
-      path?: string;
-      state: PartialState<NavigationState> | NavigationState | undefined;
+  headerTitleStyle?: StyleProp<
+    Pick<TextStyle, 'fontFamily' | 'fontSize' | 'fontWeight'> & {
+      color?: string;
     }
-  | {
-      [RouteName in keyof ParamList]: undefined extends ParamList[RouteName]
-        ? {
-            screen: RouteName;
-            params?: ParamList[RouteName];
-            initial?: boolean;
-            path?: string;
-            pop?: boolean;
-            state?: never;
-          }
-        : {
-            screen: RouteName;
-            params: ParamList[RouteName];
-            initial?: boolean;
-            path?: string;
-            pop?: boolean;
-            state?: never;
-          };
-    }[keyof ParamList];
-
-type PathConfigAlias = {
+  >;
   /**
-   * Path string to match against.
-   * e.g. `/users/:id` will match `/users/1` and extract `id` param as `1`.
+   * Options to render a native search bar.
+   * You also need to specify `contentInsetAdjustmentBehavior="automatic"` in your `ScrollView`, `FlatList` etc.
+   * If you don't have a `ScrollView`, specify `headerTransparent: false`.
    */
-  path: string;
+  headerSearchBarOptions?: SearchBarProps;
   /**
-   * Whether the path should be consider parent paths or use the exact path.
-   * By default, paths are relating to the path config on the parent screen.
-   * If `exact` is set to `true`, the parent path configuration is not used.
-   */
-  exact?: boolean;
-  /**
-   * An object mapping the param name to a function which parses the param value.
+   * Boolean indicating whether to show the menu on longPress of iOS >= 14 back button. Defaults to `true`.
+   * Requires `react-native-screens` version >=3.3.0.
    *
-   * @example
-   * ```js
-   * parse: {
-   *   id: Number,
-   *   date: (value) => new Date(value)
-   * }
-   * ```
+   * Only supported on iOS.
+   *
+   * @platform ios
    */
-  parse?: Record<string, (value: string) => any>;
+  headerBackButtonMenuEnabled?: boolean;
+  /**
+   * How the back button displays icon and title.
+   *
+   * Supported values:
+   * - "default" - Displays one of the following depending on the available space: previous screen's title, generic title (e.g. 'Back') or no title (only icon).
+   * - "generic" – Displays one of the following depending on the available space: generic title (e.g. 'Back') or no title (only icon).
+   * - "minimal" – Always displays only the icon without a title.
+   *
+   * The space-aware behavior is disabled when:
+   * - The iOS version is 13 or lower
+   * - Custom back title is set (e.g. with `headerBackTitle`)
+   * - Custom font family or size is set (e.g. with `headerBackTitleStyle`)
+   * - Back button menu is disabled (e.g. with `headerBackButtonMenuEnabled`)
+   *
+   * In such cases, a static title and icon are always displayed.
+   *
+   * Defaults to "default" on iOS, and "minimal" on other platforms.
+   *
+   * Only supported on iOS and Web.
+   *
+   * @platform ios, web
+   */
+  headerBackButtonDisplayMode?: ScreenStackHeaderConfigProps['backButtonDisplayMode'];
+  /**
+   * Whether the home indicator should prefer to stay hidden on this screen. Defaults to `false`.
+   *
+   * @platform ios
+   */
+  autoHideHomeIndicator?: boolean;
+  /**
+   * Whether the keyboard should hide when swiping to the previous screen. Defaults to `false`.
+   *
+   * @platform ios
+   */
+  keyboardHandlingEnabled?: boolean;
+  /**
+   * Sets the navigation bar color. Defaults to initial navigation bar color.
+   *
+   * @platform android
+   */
+  navigationBarColor?: string;
+  /**
+   * Boolean indicating whether the content should be visible behind the navigation bar. Defaults to `false`.
+   *
+   * @platform android
+   */
+  navigationBarTranslucent?: boolean;
+  /**
+   * Sets the visibility of the navigation bar. Defaults to `false`.
+   *
+   * @platform android
+   */
+  navigationBarHidden?: boolean;
+  /**
+   * Sets the status bar animation (similar to the `StatusBar` component).
+   * Requires setting `View controller-based status bar appearance -> YES` (or removing the config) in your `Info.plist` file.
+   *
+   * Only supported on iOS.
+   *
+   * @platform ios
+   */
+  statusBarAnimation?: ScreenProps['statusBarAnimation'];
+  /**
+   * Sets the status bar color (similar to the `StatusBar` component). Defaults to initial status bar color.
+   *
+   * @platform android
+   */
+  statusBarBackgroundColor?: string;
+  /**
+   * Whether the status bar should be hidden on this screen.
+   * Requires setting `View controller-based status bar appearance -> YES` in your Info.plist file.
+   *
+   * Only supported on iOS.
+   *
+   * @platform ios
+   */
+  statusBarHidden?: boolean;
+  /**
+   * Sets the status bar color (similar to the `StatusBar` component).
+   * Requires setting `View controller-based status bar appearance -> YES` (or removing the config) in your `Info.plist` file.
+   *
+   * Only supported on iOS.
+   *
+   * @platform ios
+   */
+  statusBarStyle?: ScreenProps['statusBarStyle'];
+  /**
+   * Sets the translucency of the status bar. Defaults to `false`.
+   *
+   * @platform android
+   */
+  statusBarTranslucent?: boolean;
+  /**
+   * Sets the direction in which you should swipe to dismiss the screen.
+   * When using `vertical` option, options `fullScreenGestureEnabled: true`, `animationMatchesGesture: true` and `animation: 'slide_from_bottom'` are set by default.
+   *
+   * Supported values:
+   * - `vertical` – dismiss screen vertically
+   * - `horizontal` – dismiss screen horizontally (default)
+   *
+   * @platform ios
+   */
+  gestureDirection?: ScreenProps['swipeDirection'];
+  /**
+   * Style object for the scene content.
+   */
+  contentStyle?: StyleProp<ViewStyle>;
+  /**
+   * Whether the gesture to dismiss should use animation provided to `animation` prop. Defaults to `false`.
+   *
+   * Doesn't affect the behavior of screens presented modally.
+   *
+   * @platform ios
+   */
+  animationMatchesGesture?: boolean;
+  /**
+   * Whether the gesture to dismiss should work on the whole screen. Using gesture to dismiss with this option results in the same
+   * transition animation as `simple_push`. This behavior can be changed by setting `animationMatchesGesture` prop. Achieving the
+   * default iOS animation isn't possible due to platform limitations. Defaults to `false`.
+   *
+   * Doesn't affect the behavior of screens presented modally.
+   *
+   * @platform ios
+   */
+  fullScreenGestureEnabled?: boolean;
+  /**
+   * Whether the full screen dismiss gesture has shadow under view during transition. The gesture uses custom transition and thus
+   * doesn't have a shadow by default. When enabled, a custom shadow view is added during the transition which tries to mimic the
+   * default iOS shadow. Defaults to `true`.
+   *
+   * This does not affect the behavior of transitions that don't use gestures, enabled by `fullScreenGestureEnabled` prop.
+   *
+   * @platform ios
+   */
+  fullScreenGestureShadowEnabled?: boolean;
+  /**
+   * Whether you can use gestures to dismiss this screen. Defaults to `true`.
+   *
+   * Only supported on iOS.
+   *
+   * @platform ios
+   */
+  gestureEnabled?: boolean;
+  /**
+   * Use it to restrict the distance from the edges of screen in which the gesture should be recognized. To be used alongside `fullScreenGestureEnabled`.
+   *
+   * @platform ios
+   */
+  gestureResponseDistance?: ScreenProps['gestureResponseDistance'];
+  /**
+   * The type of animation to use when this screen replaces another screen. Defaults to `pop`.
+   *
+   * Supported values:
+   * - "push": the new screen will perform push animation.
+   * - "pop": the new screen will perform pop animation.
+   *
+   * Only supported on iOS and Android.
+   */
+  animationTypeForReplace?: ScreenProps['replaceAnimation'];
+  /**
+   * How the screen should animate when pushed or popped.
+   *
+   * Supported values:
+   * - "default": use the platform default animation
+   * - "fade": fade screen in or out
+   * - "fade_from_bottom" – performs a fade from bottom animation
+   * - "flip": flip the screen, requires presentation: "modal" (iOS only)
+   * - "simple_push": use the platform default animation, but without shadow and native header transition (iOS only)
+   * - "slide_from_bottom": slide in the new screen from bottom
+   * - "slide_from_right": slide in the new screen from right (Android only, uses default animation on iOS)
+   * - "slide_from_left": slide in the new screen from left (Android only, uses default animation on iOS)
+   * - "ios_from_right" - iOS like slide in animation. pushes in the new screen from right to left (Android only, resolves to default transition on iOS)
+   * - "ios_from_left" - iOS like slide in animation. pushes in the new screen from left to right (Android only, resolves to default transition on iOS)
+   * - "none": don't animate the screen
+   *
+   * Only supported on iOS and Android.
+   */
+  animation?: ScreenProps['stackAnimation'];
+  /**
+   * Changes the duration (in milliseconds) of `slide_from_bottom`, `fade_from_bottom`, `fade` and `simple_push` transitions on iOS. Defaults to `500`.
+   * The duration of `default` and `flip` transitions isn't customizable.
+   *
+   * @platform ios
+   */
+  animationDuration?: number;
+  /**
+   * How should the screen be presented.
+   *
+   * Supported values:
+   * - "card": the new screen will be pushed onto a stack, which means the default animation will be slide from the side on iOS, the animation on Android will vary depending on the OS version and theme.
+   * - "modal": the new screen will be presented modally. this also allows for a nested stack to be rendered inside the screen.
+   * - "transparentModal": the new screen will be presented modally, but in addition, the previous screen will stay so that the content below can still be seen if the screen has translucent background.
+   * - "containedModal": will use "UIModalPresentationCurrentContext" modal style on iOS and will fallback to "modal" on Android.
+   * - "containedTransparentModal": will use "UIModalPresentationOverCurrentContext" modal style on iOS and will fallback to "transparentModal" on Android.
+   * - "fullScreenModal": will use "UIModalPresentationFullScreen" modal style on iOS and will fallback to "modal" on Android.
+   * - "formSheet": will use "UIModalPresentationFormSheet" modal style on iOS and will fallback to "modal" on Android.
+   *
+   * Only supported on iOS and Android.
+   */
+  presentation?: Exclude<ScreenProps['stackPresentation'], 'push'> | 'card';
+  /**
+   * Describes heights where a sheet can rest.
+   * Works only when `presentation` is set to `formSheet`.
+   *
+   * Heights should be described as fraction (a number from `[0, 1]` interval) of screen height / maximum detent height.
+   * You can pass an array of ascending values each defining allowed sheet detent. iOS accepts any number of detents,
+   * while **Android is limited to three**.
+   *
+   * There is also possibility to specify `fitToContents` literal, which intents to set the sheet height
+   * to the height of its contents.
+   *
+   * Please note that the array **must** be sorted in ascending order. This invariant is verified only in developement mode,
+   * where violation results in error.
+   *
+   * **Android is limited to up 3 values in the array** -- any surplus values, beside first three are ignored.
+   *
+   * Defaults to `[1.0]`.
+   */
+  sheetAllowedDetents?: number[] | 'fitToContents';
+  /**
+   * Integer value describing elevation of the sheet, impacting shadow on the top edge of the sheet.
+   *
+   * Not dynamic - changing it after the component is rendered won't have an effect.
+   *
+   * Defaults to `24`.
+   *
+   * @platform Android
+   */
+  sheetElevation?: number;
+  /**
+   * Whether the sheet should expand to larger detent when scrolling.
+   * Works only when `presentation` is set to `formSheet`.
+   * Defaults to `true`.
+   *
+   * @platform ios
+   */
+  sheetExpandsWhenScrolledToEdge?: boolean;
+  /**
+   * The corner radius that the sheet will try to render with.
+   * Works only when `presentation` is set to `formSheet`.
+   *
+   * If set to non-negative value it will try to render sheet with provided radius, else it will apply system default.
+   *
+   * If left unset system default is used.
+   */
+  sheetCornerRadius?: number;
+  /**
+   * Index of the detent the sheet should expand to after being opened.
+   * Works only when `stackPresentation` is set to `formSheet`.
+   *
+   * If the specified index is out of bounds of `sheetAllowedDetents` array, in dev environment more error will be thrown,
+   * in production the value will be reset to default value.
+   *
+   * Additionaly there is `last` value available, when set the sheet will expand initially to last (largest) detent.
+   *
+   * Defaults to `0` - which represents first detent in the detents array.
+   */
+  sheetInitialDetentIndex?: number | 'last';
+  /**
+   * Boolean indicating whether the sheet shows a grabber at the top.
+   * Works only when `presentation` is set to `formSheet`.
+   * Defaults to `false`.
+   *
+   * @platform ios
+   */
+  sheetGrabberVisible?: boolean;
+  /**
+   * The largest sheet detent for which a view underneath won't be dimmed.
+   * Works only when `presentation` is set to `formSheet`.
+   *
+   * This prop can be set to an number, which indicates index of detent in `sheetAllowedDetents` array for which
+   * there won't be a dimming view beneath the sheet.
+   *
+   * Additionaly there are following options available:
+   *
+   * * `none` - there will be dimming view for all detents levels,
+   * * `last` - there won't be a dimming view for any detent level.
+   *
+   * Defaults to `none`, indicating that the dimming view should be always present.
+   */
+  sheetLargestUndimmedDetentIndex?: number | 'none' | 'last';
+  /**
+   * The display orientation to use for the screen.
+   *
+   * Supported values:
+   * - "default" - resolves to "all" without "portrait_down" on iOS. On Android, this lets the system decide the best orientation.
+   * - "all": all orientations are permitted.
+   * - "portrait": portrait orientations are permitted.
+   * - "portrait_up": right-side portrait orientation is permitted.
+   * - "portrait_down": upside-down portrait orientation is permitted.
+   * - "landscape": landscape orientations are permitted.
+   * - "landscape_left": landscape-left orientation is permitted.
+   * - "landscape_right": landscape-right orientation is permitted.
+   *
+   * Only supported on iOS and Android.
+   */
+  orientation?: ScreenProps['screenOrientation'];
+  /**
+   * Whether inactive screens should be suspended from re-rendering. Defaults to `false`.
+   * Defaults to `true` when `enableFreeze()` is run at the top of the application.
+   * Requires `react-native-screens` version >=3.16.0.
+   *
+   * Only supported on iOS and Android.
+   */
+  freezeOnBlur?: boolean;
+  /**
+   * Footer component that can be used alongside formSheet stack presentation style.
+   *
+   * This option is provided, because due to implementation details it might be problematic
+   * to implement such layout with JS-only code.
+   *
+   * Please note that this prop is marked as unstable and might be subject of breaking changes,
+   * including removal, in particular when we find solution that will make implementing it with JS
+   * straightforward.
+   *
+   * @platform android
+   */
+  unstable_sheetFooter?: () => React.ReactNode;
 };
 
-export type PathConfig<ParamList extends {}> = Partial<PathConfigAlias> & {
-  /**
-   * An object mapping the param name to a function which converts the param value to a string.
-   * By default, all params are converted to strings using `String(value)`.
-   *
-   * @example
-   * ```js
-   * stringify: {
-   *   date: (value) => value.toISOString()
-   * }
-   * ```
-   */
-  stringify?: Record<string, (value: any) => string>;
-  /**
-   * Additional path alias that will be matched to the same screen.
-   */
-  alias?: (string | PathConfigAlias)[];
-  /**
-   * Path configuration for child screens.
-   */
-  screens?: PathConfigMap<ParamList>;
-  /**
-   * Name of the initial route to use for the navigator when the path matches.
-   */
-  initialRouteName?: keyof ParamList;
-};
+export type NativeStackNavigatorProps = DefaultNavigatorOptions<
+  ParamListBase,
+  string | undefined,
+  StackNavigationState<ParamListBase>,
+  NativeStackNavigationOptions,
+  NativeStackNavigationEventMap,
+  NativeStackNavigationProp<ParamListBase>
+> &
+  StackRouterOptions &
+  NativeStackNavigationConfig;
 
-export type PathConfigMap<ParamList extends {}> = {
-  [RouteName in keyof ParamList]?: NonNullable<
-    ParamList[RouteName]
-  > extends NavigatorScreenParams<infer T extends {}>
-    ? string | PathConfig<T>
-    : string | Omit<PathConfig<{}>, 'screens' | 'initialRouteName'>;
+export type NativeStackDescriptor = Descriptor<
+  NativeStackNavigationOptions,
+  NativeStackNavigationProp<ParamListBase>,
+  RouteProp<ParamListBase>
+>;
+
+export type NativeStackDescriptorMap = {
+  [key: string]: NativeStackDescriptor;
 };

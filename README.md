@@ -1,44 +1,5 @@
-# `@react-navigation/core`
+# `@react-navigation/native-stack`
 
-Core utilities for building navigators independent of the platform.
+Stack navigator for React Native using native primitives for navigation. Uses [`react-native-screens`](https://github.com/software-mansion/react-native-screens) under the hood.
 
-## Installation
-
-Open a Terminal in your project's folder and run,
-
-```sh
-npm install @react-navigation/core
-```
-
-## Usage
-
-A basic custom navigator bundling a router and a view looks like this:
-
-```js
-import {
-  createNavigatorFactory,
-  useNavigationBuilder,
-} from '@react-navigation/core';
-import { StackRouter } from '@react-navigation/routers';
-
-function StackNavigator({ initialRouteName, children, ...rest }) {
-  const { state, navigation, descriptors, NavigationContent } =
-    useNavigationBuilder(StackRouter, {
-      initialRouteName,
-      children,
-    });
-
-  return (
-    <NavigationContent>
-      <StackView
-        state={state}
-        navigation={navigation}
-        descriptors={descriptors}
-        {...rest}
-      />
-    </NavigationContent>
-  );
-}
-
-export default createNavigatorFactory(StackNavigator);
-```
+Installation instructions and documentation can be found on the [React Navigation website](https://reactnavigation.org/docs/native-stack-navigator.html).

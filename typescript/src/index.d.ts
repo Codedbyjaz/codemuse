@@ -1,27 +1,17 @@
-import * as SceneStyleInterpolators from './TransitionConfigs/SceneStyleInterpolators';
-import * as TransitionPresets from './TransitionConfigs/TransitionPresets';
-import * as TransitionSpecs from './TransitionConfigs/TransitionSpecs';
-/**
- * Transition Presets
- */
-export { SceneStyleInterpolators, TransitionPresets, TransitionSpecs };
 /**
  * Navigators
  */
-export { createBottomTabNavigator } from './navigators/createBottomTabNavigator';
+export { createNativeStackNavigator } from './navigators/createNativeStackNavigator';
 /**
  * Views
  */
-export { BottomTabBar } from './views/BottomTabBar';
-export { BottomTabView } from './views/BottomTabView';
+export { NativeStackView } from './views/NativeStackView';
 /**
- * Utilities
+ * Hooks
  */
-export { BottomTabBarHeightCallbackContext } from './utils/BottomTabBarHeightCallbackContext';
-export { BottomTabBarHeightContext } from './utils/BottomTabBarHeightContext';
-export { useBottomTabBarHeight } from './utils/useBottomTabBarHeight';
+export { useAnimatedHeaderHeight } from './utils/useAnimatedHeaderHeight';
 /**
  * Types
  */
-export type { BottomTabBarButtonProps, BottomTabBarProps, BottomTabHeaderProps, BottomTabNavigationEventMap, BottomTabNavigationOptions, BottomTabNavigationProp, BottomTabNavigatorProps, BottomTabOptionsArgs, BottomTabScreenProps, } from './types';
+export type { NativeStackHeaderLeftProps, NativeStackHeaderProps, NativeStackHeaderRightProps, NativeStackNavigationEventMap, NativeStackNavigationOptions, NativeStackNavigationProp, NativeStackNavigatorProps, NativeStackOptionsArgs, NativeStackScreenProps, } from './types';
 //# sourceMappingURL=index.d.ts.map
